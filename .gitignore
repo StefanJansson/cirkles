@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+out/
+
+# Rider / VS
+.idea/
+.vs/
+*.user
+
+# Local runtime
+*.log
+
+# EF local db data (if any placed under repo)
+pgdata/
+
+# OS
+.DS_Store
