@@ -49,6 +49,10 @@ model is specifically designed to avoid.
   - permissions: `ReadPosts, CreateDiscussion, Comment, CreatePoll, Vote,
     CreateTask, AdministerMembers, PublishAnnouncements, ViewMemberList,
     ViewHistoricalInfo`
+- **MagicLinkToken** — `Id, Token, UserAccountId, CreatedAt, ExpiresAt, ConsumedAt?`
+  - single-use, time-limited token for passwordless login (see
+    [Authentication & onboarding](#authentication--onboarding)); transient by
+    nature, carries no history
 
 ### Time-based and historical by design
 
@@ -99,6 +103,55 @@ code, so it is auditable and adjustable. See
 
 ---
 
+## Authentication & onboarding
+
+Authentication is deliberately separate from identity. A **`UserAccount`** only
+carries login credentials; the human it authenticates is a **`Person`**, and a
+person can exist with no account at all (children do). Signing in resolves the
+`UserAccount`, then the linked `Person`, from which memberships and permissions
+are derived by the authorization model above.
+
+### How it works
+
+- **JWT bearer tokens.** On successful login the API issues a signed JWT
+  (via `FastEndpoints.Security`) carrying the account id, linked person id and
+  email as claims. Clients send it as `Authorization: Bearer <token>`.
+- **Password hashing.** Passwords are stored as salted **BCrypt** hashes
+  (`IPasswordHasher` → `BCryptPasswordHasher`). Plaintext is never persisted.
+- **Onboarding.** People (including account-less children) exist first; an
+  account is *claimed* for one of them. `POST /api/auth/register` creates a
+  `UserAccount` and optionally links it to an existing `Person` (rejecting a
+  person who already has an account, or a duplicate email).
+- **Passwordless "magic link".** A guardian who never set a password can sign in
+  by requesting a single-use, 15-minute link by email
+  (`POST /api/auth/magic-link`) and redeeming it
+  (`POST /api/auth/magic-link/consume`). Requests never reveal whether an email
+  has an account (no enumeration); in **Development** the token is echoed back so
+  the flow is testable without an email/SMS provider. Magic link tokens are the
+  one transient entity in the model — unlike memberships/relationships they carry
+  no history and may be pruned once expired or consumed.
+
+### Securing endpoints
+
+All data endpoints require a valid JWT. Only `/health` and the `/api/auth/*`
+endpoints are anonymous. Authorization for *what* a caller can see inside a
+circle is still enforced by the backend authorization model — never by hidden UI.
+
+### Configuration
+
+The JWT signing key is read from `Auth:JwtSigningKey` (env var
+`Auth__JwtSigningKey`) with a token lifetime of `Auth:TokenLifetimeHours`
+(default 12h). A development fallback key keeps the prototype runnable out of the
+box; **production must supply its own key.**
+
+### Demo credentials
+
+Every seeded account shares the demo password **`Cirkles123!`** — e.g.
+`johan@example.com`, `anna@example.com`, `erik@example.com`,
+`maria@example.com`. Alexander and Lisa (children) have **no** account by default.
+
+---
+
 ## Project structure (modular monolith)
 
 ```
@@ -109,10 +162,12 @@ src/
   Circles.Application     # Authorization service, query services, DTOs
   Circles.API             # ASP.NET Core Web API: FastEndpoints, startup, DI
     Features/             # Vertical slices — one folder per feature area
+      Auth/              #   Register, Login, RequestMagicLink, ConsumeMagicLink, Me
       Persons/           #   ListPersons, GetPersonCircles, GetPersonPermissions
       Organizations/     #   ListOrganizations, GetOrganizationCircles
       Circles/           #   GetCircleMembers
       Health/            #   Health
+    Auth/                # JWT token service, claim constants, claim helpers
 ```
 
 Dependency direction: `API → Application → Infrastructure → Domain`
@@ -131,7 +186,8 @@ Application layer and reuse the same DTOs as before.
 
 - **.NET 10.0** (latest)
 - **EF Core 10.0.0** with **Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0**
-- **FastEndpoints 8.3.0** + **FastEndpoints.Swagger 8.3.0**
+- **FastEndpoints 8.3.0** + **FastEndpoints.Security 8.3.0** (JWT) + **FastEndpoints.Swagger 8.3.0**
+- **BCrypt.Net-Next 4.0.3** for password hashing
 - **PostgreSQL 14+**
 
 ---
@@ -228,27 +284,44 @@ being Alexander's guardian.
 
 ## REST API endpoints
 
-| Method & path | Description |
-| --- | --- |
-| `GET /health` | Health check |
-| `GET /api/persons` | List all persons (with account info) |
-| `GET /api/persons/{id}/circles` | Circles the person can access (Direct / Derived) |
-| `GET /api/persons/{id}/permissions/{circleId}` | Person's permissions in a circle |
-| `GET /api/organizations` | List organizations |
-| `GET /api/organizations/{id}/circles` | Circle hierarchy (nested tree) |
-| `GET /api/circles/{id}/members` | Active members of a circle |
+| Method & path | Auth | Description |
+| --- | --- | --- |
+| `GET /health` | — | Health check |
+| `POST /api/auth/register` | — | Onboarding: create account, optionally link to a person |
+| `POST /api/auth/login` | — | Password login → JWT |
+| `POST /api/auth/magic-link` | — | Request a passwordless login link |
+| `POST /api/auth/magic-link/consume` | — | Redeem a magic link → JWT |
+| `GET /api/auth/me` | 🔒 | The currently authenticated caller |
+| `GET /api/persons` | 🔒 | List all persons (with account info) |
+| `GET /api/persons/{id}/circles` | 🔒 | Circles the person can access (Direct / Derived) |
+| `GET /api/persons/{id}/permissions/{circleId}` | 🔒 | Person's permissions in a circle |
+| `GET /api/organizations` | 🔒 | List organizations |
+| `GET /api/organizations/{id}/circles` | 🔒 | Circle hierarchy (nested tree) |
+| `GET /api/circles/{id}/members` | 🔒 | Active members of a circle |
+
+🔒 = requires `Authorization: Bearer <token>`.
 
 ### Quick verification
 
 ```bash
+# Log in as a demo account (shared password: Cirkles123!)
+TOKEN=$(curl -s -X POST localhost:5000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"johan@example.com","password":"Cirkles123!"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# Who am I?
+curl localhost:5000/api/auth/me -H "Authorization: Bearer $TOKEN"
+
 # List people — note Alexander and Lisa have no account
-curl localhost:5000/api/persons
+curl localhost:5000/api/persons -H "Authorization: Bearer $TOKEN"
 
 # Johan's circles — Funktionärer (Direct) and P2016 (Derived, as guardian)
-curl localhost:5000/api/persons/<johan-id>/circles
+curl localhost:5000/api/persons/<johan-id>/circles -H "Authorization: Bearer $TOKEN"
 
-# Johan's permissions in P2016 — derived read-only: ReadPosts, ViewMemberList
-curl localhost:5000/api/persons/<johan-id>/permissions/<p2016-id>
+# Passwordless login (Development echoes the token back)
+curl -X POST localhost:5000/api/auth/magic-link \
+  -H 'Content-Type: application/json' -d '{"email":"anna@example.com"}'
 ```
 
 Enums are serialized as strings throughout the API for readability.

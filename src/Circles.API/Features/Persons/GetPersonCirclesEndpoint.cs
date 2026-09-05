@@ -24,7 +24,6 @@ public class GetPersonCirclesEndpoint : Endpoint<GetPersonCirclesRequest, List<C
     public override void Configure()
     {
         Get("/api/persons/{id}/circles");
-        AllowAnonymous();
         Description(b => b.WithTags("Persons"));
     }
 

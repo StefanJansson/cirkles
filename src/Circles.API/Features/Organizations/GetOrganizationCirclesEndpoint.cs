@@ -23,7 +23,6 @@ public class GetOrganizationCirclesEndpoint : Endpoint<GetOrganizationCirclesReq
     public override void Configure()
     {
         Get("/api/organizations/{id}/circles");
-        AllowAnonymous();
         Description(b => b.WithTags("Organizations"));
     }
 

@@ -16,7 +16,6 @@ public class ListPersonsEndpoint : EndpointWithoutRequest<List<PersonDto>>
     public override void Configure()
     {
         Get("/api/persons");
-        AllowAnonymous();
         Description(b => b.WithTags("Persons"));
     }
 

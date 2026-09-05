@@ -23,7 +23,6 @@ public class GetCircleMembersEndpoint : Endpoint<GetCircleMembersRequest, List<M
     public override void Configure()
     {
         Get("/api/circles/{id}/members");
-        AllowAnonymous();
         Description(b => b.WithTags("Circles"));
     }
 

@@ -24,7 +24,6 @@ public class GetPersonPermissionsEndpoint : Endpoint<GetPersonPermissionsRequest
     public override void Configure()
     {
         Get("/api/persons/{id}/permissions/{circleId}");
-        AllowAnonymous();
         Description(b => b.WithTags("Persons"));
     }
 

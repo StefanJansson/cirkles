@@ -21,6 +21,7 @@ public class CirclesDbContext : DbContext
     public DbSet<Circle> Circles => Set<Circle>();
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<MagicLinkToken> MagicLinkTokens => Set<MagicLinkToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

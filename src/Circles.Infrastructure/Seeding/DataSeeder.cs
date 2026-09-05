@@ -18,8 +18,11 @@ public static class DataSeeder
     // Fixed reference "now" so ValidFrom dates are stable and clearly in the past.
     private static readonly DateTime Now = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    // Simple, non-secret demo password hash (NOT a real credential store).
-    private const string DemoPasswordHash = "DEMO$pbkdf2$notarealhash";
+    // Shared password for every demo account so the prototype is easy to log in
+    // to. NOT a real credential policy — real accounts set their own password
+    // during onboarding. Hashed with BCrypt at seed time.
+    public const string DemoPassword = "Cirkles123!";
+    private static readonly string DemoPasswordHash = BCrypt.Net.BCrypt.HashPassword(DemoPassword);
 
     public static async Task SeedAsync(CirclesDbContext db)
     {

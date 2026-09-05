@@ -126,3 +126,21 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
         b.HasIndex(rp => new { rp.Role, rp.Permission }).IsUnique();
     }
 }
+
+public class MagicLinkTokenConfiguration : IEntityTypeConfiguration<MagicLinkToken>
+{
+    public void Configure(EntityTypeBuilder<MagicLinkToken> b)
+    {
+        b.ToTable("magic_link_tokens");
+        b.HasKey(t => t.Id);
+        b.Property(t => t.Token).HasMaxLength(128).IsRequired();
+        b.HasIndex(t => t.Token).IsUnique();
+
+        b.HasOne(t => t.UserAccount)
+            .WithMany()
+            .HasForeignKey(t => t.UserAccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.HasIndex(t => t.UserAccountId);
+    }
+}
