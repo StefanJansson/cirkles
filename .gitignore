@@ -5,6 +5,12 @@ out/
 
 # Rider / VS
 .idea/
+!.idea/.idea.Circles/
+!.idea/.idea.Circles/.idea/
+.idea/.idea.Circles/.idea/*
+!.idea/.idea.Circles/.idea/.gitignore
+!.idea/.idea.Circles/.idea/indexLayout.xml
+!.idea/.idea.Circles/.idea/vcs.xml
 .vs/
 *.user
 
