@@ -107,11 +107,25 @@ src/
   Circles.Domain          # Entities, enums, domain interfaces (no dependencies)
   Circles.Infrastructure  # EF Core DbContext, configurations, migrations, seeding
   Circles.Application     # Authorization service, query services, DTOs
-  Circles.API             # ASP.NET Core Web API: controllers, startup, DI
+  Circles.API             # ASP.NET Core Web API: FastEndpoints, startup, DI
+    Features/             # Vertical slices — one folder per feature area
+      Persons/           #   ListPersons, GetPersonCircles, GetPersonPermissions
+      Organizations/     #   ListOrganizations, GetOrganizationCircles
+      Circles/           #   GetCircleMembers
+      Health/            #   Health
 ```
 
 Dependency direction: `API → Application → Infrastructure → Domain`
 (Domain depends on nothing).
+
+### API layer: FastEndpoints (REPR pattern)
+
+The API is built with **[FastEndpoints](https://fast-endpoints.com/)** rather than
+MVC controllers. Each endpoint is a single self-contained class following the
+**REPR** pattern (Request → Endpoint → Response) and lives in its own file under
+`Features/<Area>/`, so the request contract, route, and handler for one operation
+are always together. Endpoints delegate to `CirclesQueryService` in the
+Application layer and reuse the same DTOs as before.
 
 ---
 

@@ -3,21 +3,25 @@ using Circles.Application.Services;
 using Circles.Domain.Interfaces;
 using Circles.Infrastructure.Persistence;
 using Circles.Infrastructure.Seeding;
+using FastEndpoints;
+using FastEndpoints.Swagger;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Services -------------------------------------------------------------
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
+// FastEndpoints (REPR pattern). Endpoints live under Features/ as vertical slices.
+builder.Services
+    .AddFastEndpoints()
+    .SwaggerDocument(o =>
     {
-        // Serialize enums as their string names for readable, stable API output.
-        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        o.DocumentSettings = s =>
+        {
+            s.Title = "Circles API";
+            s.Version = "v1";
+        };
     });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 // EF Core / PostgreSQL. Connection string comes from configuration
 // (appsettings.json) and can be overridden via the ConnectionStrings__Circles
@@ -43,16 +47,16 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ---- HTTP pipeline --------------------------------------------------------
+app.UseFastEndpoints(c =>
+{
+    // Serialize enums as their string names for readable, stable API output.
+    c.Serializer.Options.Converters.Add(new JsonStringEnumConverter());
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerGen();
 }
-
-app.MapControllers();
-
-// Health check endpoint.
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTime.UtcNow }));
 
 app.Run();
 
