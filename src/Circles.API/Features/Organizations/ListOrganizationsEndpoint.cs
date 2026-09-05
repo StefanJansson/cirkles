@@ -20,6 +20,6 @@ public class ListOrganizationsEndpoint : EndpointWithoutRequest<List<Organizatio
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        await SendAsync(await _svc.GetOrganizationsAsync(), cancellation: ct);
+        await Send.OkAsync(await _svc.GetOrganizationsAsync(), ct);
     }
 }

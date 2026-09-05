@@ -32,10 +32,10 @@ public class GetPersonCirclesEndpoint : Endpoint<GetPersonCirclesRequest, List<C
     {
         if (!await _svc.PersonExistsAsync(req.Id))
         {
-            await SendNotFoundAsync(ct);
+            await Send.NotFoundAsync(ct);
             return;
         }
 
-        await SendAsync(await _svc.GetAccessibleCirclesAsync(req.Id), cancellation: ct);
+        await Send.OkAsync(await _svc.GetAccessibleCirclesAsync(req.Id), ct);
     }
 }

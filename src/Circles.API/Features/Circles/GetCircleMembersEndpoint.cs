@@ -31,10 +31,10 @@ public class GetCircleMembersEndpoint : Endpoint<GetCircleMembersRequest, List<M
     {
         if (!await _svc.CircleExistsAsync(req.Id))
         {
-            await SendNotFoundAsync(ct);
+            await Send.NotFoundAsync(ct);
             return;
         }
 
-        await SendAsync(await _svc.GetActiveMembersAsync(req.Id), cancellation: ct);
+        await Send.OkAsync(await _svc.GetActiveMembersAsync(req.Id), ct);
     }
 }

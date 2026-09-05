@@ -14,6 +14,6 @@ public class HealthEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        await SendAsync(new { status = "healthy", time = DateTime.UtcNow }, cancellation: ct);
+        await Send.OkAsync(new { status = "healthy", time = DateTime.UtcNow }, ct);
     }
 }

@@ -22,6 +22,6 @@ public class ListPersonsEndpoint : EndpointWithoutRequest<List<PersonDto>>
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        await SendAsync(await _svc.GetPersonsAsync(), cancellation: ct);
+        await Send.OkAsync(await _svc.GetPersonsAsync(), ct);
     }
 }

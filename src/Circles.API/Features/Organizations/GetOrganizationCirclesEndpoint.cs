@@ -31,10 +31,10 @@ public class GetOrganizationCirclesEndpoint : Endpoint<GetOrganizationCirclesReq
     {
         if (!await _svc.OrganizationExistsAsync(req.Id))
         {
-            await SendNotFoundAsync(ct);
+            await Send.NotFoundAsync(ct);
             return;
         }
 
-        await SendAsync(await _svc.GetCircleHierarchyAsync(req.Id), cancellation: ct);
+        await Send.OkAsync(await _svc.GetCircleHierarchyAsync(req.Id), ct);
     }
 }

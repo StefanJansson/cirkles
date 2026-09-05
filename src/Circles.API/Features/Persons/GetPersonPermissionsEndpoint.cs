@@ -32,10 +32,10 @@ public class GetPersonPermissionsEndpoint : Endpoint<GetPersonPermissionsRequest
     {
         if (!await _svc.PersonExistsAsync(req.Id) || !await _svc.CircleExistsAsync(req.CircleId))
         {
-            await SendNotFoundAsync(ct);
+            await Send.NotFoundAsync(ct);
             return;
         }
 
-        await SendAsync(await _svc.GetPermissionsAsync(req.Id, req.CircleId), cancellation: ct);
+        await Send.OkAsync(await _svc.GetPermissionsAsync(req.Id, req.CircleId), ct);
     }
 }

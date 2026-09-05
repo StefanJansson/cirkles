@@ -120,12 +120,19 @@ Dependency direction: `API → Application → Infrastructure → Domain`
 
 ### API layer: FastEndpoints (REPR pattern)
 
-The API is built with **[FastEndpoints](https://fast-endpoints.com/)** rather than
-MVC controllers. Each endpoint is a single self-contained class following the
+The API is built with **[FastEndpoints](https://fast-endpoints.com/)** (v8.3.0) rather
+than MVC controllers. Each endpoint is a single self-contained class following the
 **REPR** pattern (Request → Endpoint → Response) and lives in its own file under
 `Features/<Area>/`, so the request contract, route, and handler for one operation
 are always together. Endpoints delegate to `CirclesQueryService` in the
 Application layer and reuse the same DTOs as before.
+
+### Technology stack
+
+- **.NET 10.0** (latest)
+- **EF Core 10.0.0** with **Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0**
+- **FastEndpoints 8.3.0** + **FastEndpoints.Swagger 8.3.0**
+- **PostgreSQL 14+**
 
 ---
 
@@ -133,7 +140,7 @@ Application layer and reuse the same DTOs as before.
 
 ### Prerequisites
 
-- [.NET SDK 8.0](https://dotnet.microsoft.com/download)
+- [.NET SDK 10.0](https://dotnet.microsoft.com/download)
 - [PostgreSQL](https://www.postgresql.org/) 14+ running and reachable
 
 ### 1. Create the database

@@ -12,16 +12,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ---- Services -------------------------------------------------------------
 // FastEndpoints (REPR pattern). Endpoints live under Features/ as vertical slices.
-builder.Services
-    .AddFastEndpoints()
-    .SwaggerDocument(o =>
+builder.Services.AddFastEndpoints();
+builder.Services.SwaggerDocument(o =>
+{
+    o.DocumentSettings = s =>
     {
-        o.DocumentSettings = s =>
-        {
-            s.Title = "Circles API";
-            s.Version = "v1";
-        };
-    });
+        s.DocumentName = "v1";
+        s.Title = "Circles API";
+        s.Version = "v1";
+    };
+});
 
 // EF Core / PostgreSQL. Connection string comes from configuration
 // (appsettings.json) and can be overridden via the ConnectionStrings__Circles
