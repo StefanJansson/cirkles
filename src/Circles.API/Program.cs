@@ -40,14 +40,15 @@ builder.Services.SwaggerDocument(o =>
     };
 });
 
-// EF Core / PostgreSQL. Connection string comes from configuration
+// EF Core / Azure SQL (SQL Server). Connection string comes from configuration
 // (appsettings.json) and can be overridden via the ConnectionStrings__Circles
-// environment variable.
+// environment variable. In Azure, prefer a passwordless connection using a
+// managed identity (Authentication=Active Directory Default).
 var connectionString = builder.Configuration.GetConnectionString("Circles")
-    ?? "Host=localhost;Port=5432;Database=circles;Username=postgres;Password=postgres";
+    ?? "Server=localhost,1433;Database=circles;User Id=sa;Password=Circles_Str0ng!Pass;TrustServerCertificate=True;Encrypt=True";
 
 builder.Services.AddDbContext<CirclesDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
 
 // Application services.
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();

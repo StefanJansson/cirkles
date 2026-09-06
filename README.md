@@ -2,8 +2,8 @@
 
 Circles is a communication and identity platform for organizational contexts such
 as sports clubs and teams. This repository contains the C# backend: an
-**ASP.NET Core Web API** built on **EF Core** and **PostgreSQL**, structured as a
-**modular monolith**.
+**ASP.NET Core Web API** built on **EF Core** and **Azure SQL** (SQL Server),
+structured as a **modular monolith**.
 
 The first use case is **Uppsala IK**, a fictional Swedish sports club, which the
 project seeds with realistic demo data.
@@ -185,10 +185,12 @@ Application layer and reuse the same DTOs as before.
 ### Technology stack
 
 - **.NET 10.0** (latest)
-- **EF Core 10.0.0** with **Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0**
+- **EF Core 10.0.0** with **Microsoft.EntityFrameworkCore.SqlServer 10.0.0**
 - **FastEndpoints 8.3.0** + **FastEndpoints.Security 8.3.0** (JWT) + **FastEndpoints.Swagger 8.3.0**
 - **BCrypt.Net-Next 4.0.3** for password hashing
-- **PostgreSQL 14+**
+- **Azure SQL** / **SQL Server 2022+** (connection resiliency enabled via
+  `EnableRetryOnFailure`, which also handles the resume delay when an Azure SQL
+  **serverless** database wakes from auto-pause)
 
 ---
 
@@ -197,26 +199,42 @@ Application layer and reuse the same DTOs as before.
 ### Prerequisites
 
 - [.NET SDK 10.0](https://dotnet.microsoft.com/download)
-- [PostgreSQL](https://www.postgresql.org/) 14+ running and reachable
+- A reachable **SQL Server** instance. Any of:
+  - **Azure SQL Database** (including the serverless tier), or
+  - local **SQL Server 2022+**, or
+  - the official container: `docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=<StrongPassword>" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest`
 
 ### 1. Create the database
 
-```bash
-createdb circles          # or: psql -c "CREATE DATABASE circles;"
+The API creates the schema automatically via migrations on startup, but the
+**database itself** must exist first:
+
+```sql
+CREATE DATABASE circles;
 ```
+
+(For Azure SQL, create the database from the portal / CLI. Against a local
+instance you can run the statement with `sqlcmd`.)
 
 ### 2. Configure the connection string
 
-The default (in `src/Circles.API/appsettings.json`) is:
+The default (in `src/Circles.API/appsettings.json`) targets a local instance:
 
 ```
-Host=localhost;Port=5432;Database=circles;Username=postgres;Password=postgres
+Server=localhost,1433;Database=circles;User Id=sa;Password=<YourPassword>;TrustServerCertificate=True;Encrypt=True
 ```
 
 Override it without editing files via an environment variable:
 
 ```bash
-export ConnectionStrings__Circles="Host=localhost;Port=5432;Database=circles;Username=postgres;Password=postgres"
+export ConnectionStrings__Circles="Server=localhost,1433;Database=circles;User Id=sa;Password=<YourPassword>;TrustServerCertificate=True;Encrypt=True"
+```
+
+For **Azure SQL**, use the connection string from the portal. Prefer a
+passwordless connection with a managed identity where possible:
+
+```bash
+export ConnectionStrings__Circles="Server=tcp:<your-server>.database.windows.net,1433;Database=circles;Authentication=Active Directory Default;Encrypt=True"
 ```
 
 ### 3. Run
@@ -230,7 +248,7 @@ data** automatically (both are idempotent). Swagger UI is available in the
 Development environment at `/swagger`.
 
 > To manage migrations manually you need the EF tools:
-> `dotnet tool install --global dotnet-ef --version 8.0.11`
+> `dotnet tool install --global dotnet-ef --version 10.0.0`
 > then e.g.
 > `dotnet ef migrations add <Name> --project src/Circles.Infrastructure --startup-project src/Circles.API`
 
