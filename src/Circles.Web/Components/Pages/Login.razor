@@ -1,0 +1,87 @@
+@page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+@* Static server-rendered page (no interactive render mode) so the form posts
+   run in a real HTTP request and can write the auth cookie. *@
+
+<div class="auth-page">
+    <div class="auth-brand">
+        <div class="brand-mark">C</div>
+        <h1 class="brand-title">Circles</h1>
+        <p class="brand-tagline">Cirklar för din förening</p>
+    </div>
+
+    @if (Error == "1")
+    {
+        <p class="alert alert-error" role="alert">Fel e-post eller lösenord.</p>
+    }
+    else if (Error == "2")
+    {
+        <p class="alert alert-error" role="alert">Länken kunde inte användas. Be om en ny.</p>
+    }
+
+    @* ---- Password login ---- *@
+    <form method="post" action="/auth/login" class="auth-form">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+        <div class="field">
+            <label for="email">E-post</label>
+            <input id="email" name="email" type="email" autocomplete="email" required placeholder="namn@@exempel.se" />
+        </div>
+        <div class="field">
+            <label for="password">Lösenord</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn btn-primary">Logga in</button>
+    </form>
+
+    <div class="divider"><span>eller</span></div>
+
+    @* ---- Passwordless (magic link) ---- *@
+    <section class="magic">
+        <h2 class="magic-title">Logga in utan lösenord</h2>
+        <p class="magic-help">Vi skickar en inloggningslänk till din e-post.</p>
+
+        <form method="post" action="/auth/magic-link" class="auth-form">
+            <AntiforgeryToken />
+            <div class="field">
+                <input name="email" type="email" required placeholder="namn@@exempel.se" aria-label="E-post för inloggningslänk" />
+            </div>
+            <button type="submit" class="btn btn-outline">Skicka länk</button>
+        </form>
+
+        @if (Sent == "1")
+        {
+            <div class="alert alert-info">
+                Om adressen finns hos oss skickas en inloggningslänk dit.
+            </div>
+        }
+
+        @* Development convenience: the server echoes the token so the flow is
+           testable without a real email provider. *@
+        @if (!string.IsNullOrEmpty(DevToken))
+        {
+            <a class="btn btn-dark" href="@($"/auth/magic-link/consume?token={DevToken}")">
+                Klicka här för att logga in (dev)
+            </a>
+        }
+    </section>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public string? Sent { get; set; }
+    [SupplyParameterFromQuery] public string? DevToken { get; set; }
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Already signed in? Skip the form.
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Nav.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/hem" : ReturnUrl, forceLoad: false);
+    }
+}

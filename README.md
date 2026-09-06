@@ -1,9 +1,19 @@
 # Circles
 
 Circles is a communication and identity platform for organizational contexts such
-as sports clubs and teams. This repository contains the C# backend: an
-**ASP.NET Core Web API** built on **EF Core** and **Azure SQL** (SQL Server),
-structured as a **modular monolith**.
+as sports clubs and teams. This is an all-C# solution:
+
+- **`Circles.API`** — an **ASP.NET Core Web API** (FastEndpoints) built on
+  **EF Core** and **Azure SQL** (SQL Server), structured as a **modular monolith**.
+  It stays in the solution to serve the future native mobile app and third-party
+  integrations.
+- **`Circles.Web`** — a **Blazor Server** frontend (mobile-first, Scandinavian
+  design) that talks to the same Application/Infrastructure layers directly and
+  uses **ASP.NET Core cookie authentication** against the existing
+  `UserAccount` + BCrypt store.
+
+Both projects share the `Circles.Domain`, `Circles.Application` and
+`Circles.Infrastructure` layers, so there is no duplicated model or DTO code.
 
 The first use case is **Uppsala IK**, a fictional Swedish sports club, which the
 project seeds with realistic demo data.
@@ -168,10 +178,18 @@ src/
       Circles/           #   GetCircleMembers
       Health/            #   Health
     Auth/                # JWT token service, claim constants, claim helpers
+  Circles.Web             # Blazor Server frontend (cookie auth, mobile-first UI)
+    Components/
+      Pages/             #   Login, Hem, Cirkel, Profil, NotFound
+      Layout/            #   MainLayout, BottomNav
+    Auth/                # Cookie claims builder + ClaimsPrincipal extensions
+    Shared/              # Swedish enum labels (Labels.cs)
+    wwwroot/app.css      # Scandinavian design system
 ```
 
-Dependency direction: `API → Application → Infrastructure → Domain`
-(Domain depends on nothing).
+Dependency direction: `API/Web → Application → Infrastructure → Domain`
+(Domain depends on nothing). Both `Circles.API` and `Circles.Web` are host
+projects that sit on top of the shared Application layer.
 
 ### API layer: FastEndpoints (REPR pattern)
 
@@ -185,6 +203,8 @@ Application layer and reuse the same DTOs as before.
 ### Technology stack
 
 - **.NET 10.0** (latest)
+- **Blazor Server** (interactive server render mode) for the frontend, with
+  **ASP.NET Core cookie authentication**
 - **EF Core 10.0.0** with **Microsoft.EntityFrameworkCore.SqlServer 10.0.0**
 - **FastEndpoints 8.3.0** + **FastEndpoints.Security 8.3.0** (JWT) + **FastEndpoints.Swagger 8.3.0**
 - **BCrypt.Net-Next 4.0.3** for password hashing
@@ -255,6 +275,8 @@ is not sensitive, e.g., using managed identity with no credentials)
 
 ### 3. Run
 
+**Backend API** (for the future mobile app / integrations, and Swagger):
+
 ```bash
 dotnet run --project src/Circles.API
 ```
@@ -262,6 +284,20 @@ dotnet run --project src/Circles.API
 On startup the API **applies EF Core migrations** and **seeds the Uppsala IK demo
 data** automatically (both are idempotent). Swagger UI is available in the
 Development environment at `/swagger`.
+
+**Blazor frontend** (the web app users actually log into):
+
+```bash
+dotnet run --project src/Circles.Web
+```
+
+`Circles.Web` reads the same `ConnectionStrings:Circles` value and also runs
+migrate + seed on startup, so it can be started on its own. It listens on
+`https://localhost:7099` (and `http://localhost:5235`). Log in with any of the
+[demo credentials](#demo-credentials) below.
+
+> In Rider, the **Full Stack (Backend + Frontend)** compound run configuration
+> starts both `Circles.API` and `Circles.Web` together.
 
 > To manage migrations manually you need the EF tools:
 > `dotnet tool install --global dotnet-ef --version 10.0.0`

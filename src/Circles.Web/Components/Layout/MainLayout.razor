@@ -1,0 +1,23 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <AuthorizeView>
+        <Authorized>
+            <main class="app-content has-nav">
+                @Body
+            </main>
+            <BottomNav />
+        </Authorized>
+        <NotAuthorized>
+            <main class="app-content">
+                @Body
+            </main>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ett oväntat fel inträffade.
+    <a href="." class="reload">Ladda om</a>
+    <span class="dismiss">🗙</span>
+</div>

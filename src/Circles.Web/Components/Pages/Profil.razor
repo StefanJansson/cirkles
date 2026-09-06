@@ -1,0 +1,52 @@
+@page "/profil"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Profil · Circles</PageTitle>
+
+<header class="page-header">
+    <h1>Profil</h1>
+</header>
+
+<div class="profile-card">
+    <span class="avatar avatar-lg">@Labels.Initials(_fullName)</span>
+    <div class="profile-meta">
+        <p class="profile-name">@(_fullName ?? "—")</p>
+        <p class="profile-email">@_email</p>
+    </div>
+</div>
+
+<dl class="detail-list">
+    <div class="detail-row">
+        <dt>Kopplad person</dt>
+        <dd>@(_linked ? "Ja" : "Nej")</dd>
+    </div>
+</dl>
+
+@* Plain form post so sign-out runs in an HTTP request and can clear the cookie. *@
+<form method="post" action="/auth/logout" class="logout-form">
+    <AntiforgeryToken />
+    <button type="submit" class="btn btn-outline btn-danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <path d="M16 17l5-5-5-5" />
+            <path d="M21 12H9" />
+        </svg>
+        Logga ut
+    </button>
+</form>
+
+@code {
+    private string? _fullName;
+    private string? _email;
+    private bool _linked;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _fullName = user.GetFullName();
+        _email = user.GetEmail();
+        _linked = user.GetPersonId() is not null;
+    }
+}

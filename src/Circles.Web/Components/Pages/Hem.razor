@@ -1,0 +1,88 @@
+@page "/hem"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject CirclesQueryService Circles
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Hem · Circles</PageTitle>
+
+<header class="page-header">
+    <p class="eyebrow">Välkommen tillbaka</p>
+    <h1>@Greeting</h1>
+</header>
+
+<section>
+    <h2 class="section-label">Mina cirklar</h2>
+
+    @if (_error is not null)
+    {
+        <p class="alert alert-error" role="alert">@_error</p>
+    }
+    else if (_circles is null)
+    {
+        <div class="center-pad"><div class="spinner"></div></div>
+    }
+    else if (_circles.Count == 0)
+    {
+        <div class="empty-state">
+            <p class="empty-title">@(_hasPerson ? "Du är inte med i någon cirkel än" : "Ditt konto är inte kopplat till en person än")</p>
+            <p class="empty-help">
+                @(_hasPerson
+                    ? "När du blir medlem i en cirkel dyker den upp här."
+                    : "En administratör behöver koppla ditt konto till en person.")
+            </p>
+        </div>
+    }
+    else
+    {
+        <ul class="card-list">
+            @foreach (var c in _circles)
+            {
+                <li>
+                    <a class="circle-card" href="@($"/cirklar/{c.CircleId}")">
+                        <div class="circle-card-main">
+                            <span class="circle-name">@c.Name</span>
+                            <span class="circle-type">@Labels.Circle(c.Type)</span>
+                        </div>
+                        <span class="badge @(c.AccessKind == "Direct" ? "badge-direct" : "badge-derived")">
+                            @Labels.Access(c.AccessKind)
+                        </span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private List<CircleAccessDto>? _circles;
+    private string? _error;
+    private bool _hasPerson;
+    private string Greeting = "Hej!";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var first = user.GetFirstName();
+        Greeting = string.IsNullOrWhiteSpace(first) ? "Hej!" : $"Hej {first}!";
+
+        var personId = user.GetPersonId();
+        _hasPerson = personId is not null;
+
+        if (personId is not { } pid)
+        {
+            _circles = new();
+            return;
+        }
+
+        try
+        {
+            _circles = await Circles.GetAccessibleCirclesAsync(pid);
+        }
+        catch
+        {
+            _error = "Kunde inte hämta dina cirklar.";
+        }
+    }
+}

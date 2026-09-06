@@ -1,0 +1,102 @@
+@page "/cirklar/{Id:guid}"
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject CirclesQueryService Circles
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>@(_circle?.Name ?? "Cirkel") · Circles</PageTitle>
+
+<header class="page-header">
+    <a class="back-link" href="/hem">← Tillbaka</a>
+</header>
+
+@if (_error is not null)
+{
+    <p class="alert alert-error" role="alert">@_error</p>
+}
+else if (_loading)
+{
+    <div class="center-pad"><div class="spinner"></div></div>
+}
+else if (_circle is null)
+{
+    <div class="empty-state">
+        <p class="empty-title">Cirkeln kunde inte visas</p>
+        <p class="empty-help">Du kanske inte har åtkomst till den här cirkeln.</p>
+    </div>
+}
+else
+{
+    <div class="circle-detail-head">
+        <h1>@_circle.Name</h1>
+        <div class="chips">
+            <span class="chip">@Labels.Circle(_circle.Type)</span>
+            <span class="chip @(_circle.AccessKind == "Direct" ? "chip-direct" : "chip-derived")">
+                @Labels.Access(_circle.AccessKind) åtkomst
+            </span>
+        </div>
+    </div>
+
+    <section>
+        <h2 class="section-label">Medlemmar (@(_members?.Count ?? 0))</h2>
+
+        @if (_members is null || _members.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="empty-title">Inga aktiva medlemmar</p>
+            </div>
+        }
+        else
+        {
+            <ul class="member-list">
+                @foreach (var m in _members)
+                {
+                    <li class="member-row">
+                        <span class="avatar avatar-sm">@Labels.Initials(m.FullName)</span>
+                        <span class="member-name">@m.FullName</span>
+                        <span class="member-role">@Labels.Role(m.Role)</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CircleAccessDto? _circle;
+    private List<MemberDto>? _members;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var personId = user.GetPersonId();
+        if (personId is not { } pid)
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            // Access check: only surface a circle the person can actually reach.
+            var accessible = await Circles.GetAccessibleCirclesAsync(pid);
+            _circle = accessible.FirstOrDefault(c => c.CircleId == Id);
+
+            if (_circle is not null)
+                _members = await Circles.GetActiveMembersAsync(Id);
+        }
+        catch
+        {
+            _error = "Kunde inte hämta cirkeln.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
