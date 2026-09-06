@@ -218,24 +218,40 @@ instance you can run the statement with `sqlcmd`.)
 
 ### 2. Configure the connection string
 
-The default (in `src/Circles.API/appsettings.json`) targets a local instance:
+The application supports both **local SQL Server** and **Azure SQL**.
+
+#### Local SQL Server (for sandbox/CI verification)
+
+The default in `src/Circles.API/appsettings.json` targets a local instance:
 
 ```
 Server=localhost,1433;Database=circles;User Id=sa;Password=<YourPassword>;TrustServerCertificate=True;Encrypt=True
 ```
 
-Override it without editing files via an environment variable:
+#### Azure SQL (recommended for development and production)
+
+`appsettings.Development.json` contains a placeholder Azure SQL connection string.
+Replace `<your-server>` with your actual server name and set it via one of:
+
+**Option A: User Secrets (recommended for local development)**
 
 ```bash
-export ConnectionStrings__Circles="Server=localhost,1433;Database=circles;User Id=sa;Password=<YourPassword>;TrustServerCertificate=True;Encrypt=True"
+dotnet user-secrets init --project src/Circles.API
+dotnet user-secrets set "ConnectionStrings:Circles" "Server=tcp:<your-server>.database.windows.net,1433;Initial Catalog=circles-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;" --project src/Circles.API
 ```
 
-For **Azure SQL**, use the connection string from the portal. Prefer a
-passwordless connection with a managed identity where possible:
+**Option B: Environment variable**
 
 ```bash
-export ConnectionStrings__Circles="Server=tcp:<your-server>.database.windows.net,1433;Database=circles;Authentication=Active Directory Default;Encrypt=True"
+export ConnectionStrings__Circles="Server=tcp:<your-server>.database.windows.net,1433;Initial Catalog=circles-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
 ```
+
+**Option C: Edit `appsettings.Development.json` directly** (if your connection string
+is not sensitive, e.g., using managed identity with no credentials)
+
+> **Note:** Prefer **passwordless authentication** (`Authentication=Active Directory Default`)
+> with a managed identity or your Azure CLI/Visual Studio credentials. This avoids
+> embedding passwords in connection strings.
 
 ### 3. Run
 
